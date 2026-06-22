@@ -23,7 +23,7 @@ jobs:
           echo "当前时间: $(date +'%Y-%m-%d %H:%M:%S %Z')"
 
       - name: Checkout GitHub Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -50,13 +50,9 @@ jobs:
       - name: Download from OSS
         run: |
           mkdir -p local
-          echo "开始下载线路包 [$(date +'%H:%M:%S')]"
-
-          curl -L -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
-          curl -L -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
-
+          curl -Lf -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
+          curl -Lf -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
           echo "下载完成 [$(date +'%H:%M:%S')]"
-
 
 
       - name: Restore Backup Directory
@@ -211,7 +207,7 @@ jobs:
 
       - name: Commit and Push  # 提交推送逻辑（未修改）
         run: |
-          git add 历史线路包/ 单线路文件/ local/ || echo "无文件变更"
+          git add 历史线路包/ 单线路文件/ || echo "无文件变更"
           if ! git diff-index --quiet HEAD --; then
             git config --global user.name "GitHub Actions Bot"
             git config --global user.email "actions@github.com"
