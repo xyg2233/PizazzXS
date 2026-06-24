@@ -80,121 +80,54 @@ jobs:
           git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
           echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
 
-      - name: Smart Atomic Backup  # 核心备份逻辑（完全未修改）
+            - name: Smart Atomic Backup
         run: |
           #!/bin/bash
-          set -eo pipefail
-          SRC_FILE="local/单线路.zip"
-          BACKUP_DIR="历史线路包"
-          BASE_NAME="单线路"
-          DATE_SUFFIX=$(date +"%y.%m.%d")
-          MAX_RETRIES=3
-          RETRY_DELAY=5
+          set -e
+          
+          # 确保目录存在
+          mkdir -p "历史线路包"
+          
+          # 1. 初始化或读取哈希记录
+          HASH_FILE="历史线路包/last_hashes.txt"
+          if [ ! -f "$HASH_FILE" ]; then
+            echo "## 备份时间 | 文件名 | 哈希值" > "$HASH_FILE"
+            echo "---|---|---" >> "$HASH_FILE"
+          fi
 
-          atomic_backup_with_retry() {
-            local attempt=1
-            while [ $attempt -le $MAX_RETRIES ]; do
-              echo "[尝试 $attempt/$MAX_RETRIES] $(date +'%H:%M:%S')"
-              if atomic_backup; then
-                return 0
-              fi
-              sleep $RETRY_DELAY
-              ((attempt++))
-            done
-            echo "::error::达到最大重试次数 [$(date +'%H:%M:%S')]"
-            return 1
-          }
-
-          atomic_backup() {
-            exec 9>"$BACKUP_DIR/.lock"
-            if ! flock -x -w 15 9; then
-              echo "::error::无法获取文件锁 [$(date +'%H:%M:%S')]"
-              return 1
-            fi
-
-            if [ ! -f "$SRC_FILE" ]; then
-              echo "::warning::源文件不存在 [$(date +'%H:%M:%S')]"
-              return 0
-            fi
+          # 2. 备份逻辑函数
+          backup_if_changed() {
+            local file="$1"
+            local name=$(basename "$file")
             
-            CURRENT_HASH=$(sha256sum "$SRC_FILE" | awk '{print $1}')
-            echo "当前文件哈希: ${CURRENT_HASH:0:8}... [$(date +'%H:%M:%S')]"
-
-            if [ -f "$BACKUP_DIR/last_hashes.txt" ]; then
-              OLD_HASH=$(grep "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" | cut -d: -f2 || echo "")
-              if [ "$CURRENT_HASH" == "$OLD_HASH" ]; then
-                echo "::notice::文件无变化，跳过备份 [$(date +'%H:%M:%S')]"
-                return 0
-              fi
+            if [ -f "$file" ]; then
+              # 计算当前文件哈希
+              CURRENT_HASH=$(sha256sum "$file" | awk '{print $1}')
               
-              while IFS= read -r -d '' backup_file; do
-                BACKUP_HASH=$(sha256sum "$backup_file" | awk '{print $1}')
-                if [ "$BACKUP_HASH" == "$CURRENT_HASH" ]; then
-                  echo "::notice::发现相同备份: $(basename "$backup_file") [$(date +'%H:%M:%S')]"
-                  TEMP_HASHFILE=$(mktemp)
-                  grep -v "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" > "$TEMP_HASHFILE" 2>/dev/null || true
-                  echo "$BASE_NAME:$CURRENT_HASH" >> "$TEMP_HASHFILE"
-                  mv "$TEMP_HASHFILE" "$BACKUP_DIR/last_hashes.txt"
-                  return 0
-                fi
-              done < <(find "$BACKUP_DIR" -name "${BASE_NAME}*.zip" -print0)
-            fi
-
-            TEMP_DIR=$(mktemp -d)
-            trap 'rm -rf "$TEMP_DIR"' EXIT
-
-            get_next_version() {
-              local files=()
-              while IFS= read -r -d '' file; do
-                files+=("$file")
-              done < <(find "$BACKUP_DIR" -name "${BASE_NAME}${DATE_SUFFIX}*.zip" -print0 | sort -zV)
+              # 读取上次记录的哈希
+              OLD_HASH=$(grep "^$name|" "$HASH_FILE" | cut -d'|' -f2)
               
-              if [ ${#files[@]} -eq 0 ]; then
-                echo "0"
+              if [ "$CURRENT_HASH" != "$OLD_HASH" ]; then
+                echo "🔄 检测到变化: $name"
+                # 生成带时间的文件名备份
+                TIMESTAMP=$(date +%m%d_%H%M)
+                cp "$file" "历史线路包/${name%.*}_$TIMESTAMP.zip"
+                
+                # 更新哈希记录
+                grep -v "^$name|" "$HASH_FILE" > temp.txt && mv temp.txt "$HASH_FILE"
+                echo "$name|$CURRENT_HASH" >> "$HASH_FILE"
               else
-                local latest_file="${files[-1]"
-                if [[ "$latest_file" =~ ${BASE_NAME}${DATE_SUFFIX}(\.([0-9]+))?\.zip$ ]]; then
-                  local current_ver="${BASH_REMATCH[2]:-0}"
-                  echo "$((current_ver + 1))"
-                else
-                  echo "1"
-                fi
+                echo "✅ 无变化: $name"
               fi
-            }
-
-            local version=$(get_next_version)
-            local backup_name
-            if [ "$version" -eq 0 ]; then
-              backup_name="${BASE_NAME}${DATE_SUFFIX}.zip"
-            else
-              backup_name="${BASE_NAME}${DATE_SUFFIX}.${version}.zip"
             fi
-
-            (
-              set -e
-              TEMP_FILE="$TEMP_DIR/${backup_name}.tmp"
-              echo "创建临时备份文件: $backup_name [$(date +'%H:%M:%S')]"
-              cp "$SRC_FILE" "$TEMP_FILE"
-
-              TEMP_HASH=$(sha256sum "$TEMP_FILE" | awk '{print $1}')
-              if [ "$TEMP_HASH" != "$CURRENT_HASH" ]; then
-                echo "::error::哈希校验失败 [$(date +'%H:%M:%S')]"
-                exit 1
-              fi
-
-              mv "$TEMP_FILE" "$BACKUP_DIR/$backup_name"
-              TEMP_HASHFILE="$TEMP_DIR/last_hashes.tmp"
-              grep -v "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" > "$TEMP_HASHFILE" 2>/dev/null || true
-              echo "$BASE_NAME:$CURRENT_HASH" >> "$TEMP_HASHFILE"
-              mv "$TEMP_HASHFILE" "$BACKUP_DIR/last_hashes.txt"
-            ) || {
-              echo "::error::备份过程失败 [$(date +'%H:%M:%S')]"
-              return 1
-            }
-
-            echo "::notice::备份成功: $backup_name [$(date +'%H:%M:%S')]"
-            return 0
           }
+
+          # 3. 执行备份检查
+          backup_if_changed "local/单线路.zip"
+          backup_if_changed "local/多线路.zip"
+
+          echo "✨ 备份检查完成"
+
 
           atomic_backup_with_retry
 
