@@ -47,13 +47,20 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
+      # ====================== 关键修改点 1 ======================
+      # 删除了原来的 "Fetch and Overwrite from GitHub" 步骤
+      # 那个步骤会删除 local 文件夹，导致后续备份失败
+      # ===========================================================
+
+      # ====================== 关键修改点 2 ======================
+      # 下载步骤：加了 -f 参数，下载失败立刻报错，不隐忍
+      # ===========================================================
       - name: Download from OSS
         run: |
           mkdir -p local
           curl -Lf -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
           curl -Lf -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
           echo "下载完成 [$(date +'%H:%M:%S')]"
-
 
       - name: Restore Backup Directory
         run: |
@@ -73,7 +80,7 @@ jobs:
           git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
           echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
 
-      - name: Smart Atomic Backup  # 核心备份逻辑（未修改）
+      - name: Smart Atomic Backup  # 核心备份逻辑（原封不动）
         run: |
           #!/bin/bash
           set -eo pipefail
@@ -116,7 +123,7 @@ jobs:
             if [ -f "$BACKUP_DIR/last_hashes.txt" ]; then
               OLD_HASH=$(grep "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" | cut -d: -f2 || echo "")
               if [ "$CURRENT_HASH" == "$OLD_HASH" ]; then
-                echo "::notice::文件无变化，跳过备份 [$(date +'%H:%M:%S')]"
+                echo "::notice::文件无变化，跳过备份 [$(date +'%H:%M:%S')"
                 return 0
               fi
               
@@ -191,7 +198,7 @@ jobs:
 
           atomic_backup_with_retry
 
-      - name: Auto Extract ZIP  # 解压逻辑（未修改）
+      - name: Auto Extract ZIP  # 解压逻辑（原封不动）
         run: |
           if [ -f "local/单线路.zip" ]; then
             echo "开始解压 [$(date +'%H:%M:%S')]"
@@ -205,7 +212,7 @@ jobs:
             echo "::notice::无ZIP文件可解压 [$(date +'%H:%M:%S')]"
           fi
 
-      - name: Commit and Push  # 提交推送逻辑（未修改）
+      - name: Commit and Push  # 提交推送逻辑（原封不动）
         run: |
           git add 历史线路包/ 单线路文件/ || echo "无文件变更"
           if ! git diff-index --quiet HEAD --; then
@@ -218,28 +225,24 @@ jobs:
             echo "::notice::无新变更，跳过推送"
           fi
 
-      # ====================== 存储报告步骤（标题格式已修改）======================
+      # ====================== 存储报告步骤（原封不动）======================
       - name: Generate Storage Report
         if: github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get update -qq && sudo apt-get install -qqy jq bc > /dev/null
 
-          # 获取存储数据
           STORAGE_USED_KB=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}" | jq -r '.size')
-          STORAGE_QUOTA_GB=1.0  # 总配额1.0 GB
-          STORAGE_QUOTA_MB=$(echo "$STORAGE_QUOTA_GB * 1024" | bc)  # 1GB=1024MB
+          STORAGE_QUOTA_GB=1.0
+          STORAGE_QUOTA_MB=$(echo "$STORAGE_QUOTA_GB * 1024" | bc)
 
-          # 单位转换（已使用和剩余空间用MB）
           STORAGE_USED_MB=$(echo "scale=2; $STORAGE_USED_KB / 1024" | bc)
           REMAINING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
           if (( $(echo "$REMAINING_MB < 0" | bc -l) )); then REMAINING_MB=0.00; fi
 
-          # 计算百分比
           STORAGE_PERCENT=$(echo "scale=3; ($STORAGE_USED_MB / $STORAGE_QUOTA_MB) * 100" | bc)
           STORAGE_PERCENT=$(printf "%.1f" "$STORAGE_PERCENT")
 
-          # 进度条
           PROGRESS_BAR=""
           for i in {1..20}; do
             THRESHOLD=$(echo "scale=1; $i * 5" | bc)
@@ -250,16 +253,14 @@ jobs:
             fi
           done
 
-          # 备份统计
           BACKUP_COUNT=$(ls -1 历史线路包/*.zip 2>/dev/null | wc -l)
           LATEST_BACKUP=$(ls -1t 历史线路包/*.zip 2>/dev/null | head -n1 | xargs basename 2>/dev/null || echo "无")
           BACKUP_SIZE=$(du -sh 历史线路包 2>/dev/null | cut -f1)
 
-          # 生成报告（标题格式：📦[存储报告] 08-06 20:55）
           REPORT_CONTENT=$(cat <<-EOF
           ## 📊 仓库存储分析报告
           **生成时间:** $(date +'%Y-%m-%d %H:%M:%S %Z')  
-          **工作流ID:** [$GITHUB_RUN_ID](链接1$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)
+          **工作流ID:** [$GITHUB_RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$GITHUB_RUN_ID)
 
           ### 🗃️ 存储使用情况
           | 项目         | 详情                          |
@@ -279,13 +280,11 @@ jobs:
 
           ### 📂 目录概览
           \`\`\`bash
-          # 文件大小排行
-          $(du -sh * | sort -hr | head -n20)
+          $(du -sh * 2>/dev/null | sort -hr | head -n20)
           \`\`\`
           EOF
           )
 
-          # 创建Issue（标题格式：📦[存储报告] 月-日 时:分）
           curl -s -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
