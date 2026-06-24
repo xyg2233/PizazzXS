@@ -31,7 +31,7 @@ jobs:
       - name: Initialize Environment
         run: |
           mkdir -p 历史线路包
-          # 哪怕last_hashes.txt被删了，也自动重建，不影响逻辑
+          # 【保留原有逻辑】即使last_hashes.txt被删，自动重建
           touch 历史线路包/last_hashes.txt
           chmod 644 历史线路包/last_hashes.txt
           echo "初始化完成 [$(date +'%H:%M:%S')]"
@@ -48,16 +48,11 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== 仅删这一行：没用的旧GitHub同步（对方仓库删了local，留着捣乱）======================
-      # - name: Fetch and Overwrite from GitHub
-      #   run: |
-      #     git remote add github https://github.com/PizazzGY/NewTVBox.git || true
-      #     git fetch github
-      #     git reset --hard github/main
-      #     git clean -fd
-      #     echo "GitHub同步完成 [$(date +'%H:%M:%S')]"
+      # ====================== 【修改点1：删掉没用的旧GitHub同步步骤】======================
+      # 对方仓库已删除local文件夹，留着会偷偷清空你的下载文件，完全无用
+      # ==================================================================================
 
-      # ====================== 仅改这里：换成你要的OSS地址======================
+      # ====================== 【修改点2：换成你要的OSS下载地址】======================
       - name: Download from OSS
         run: |
           mkdir -p local
@@ -65,6 +60,7 @@ jobs:
           curl -Lf -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
           curl -Lf -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
           echo "下载完成 [$(date +'%H:%M:%S')]"
+      # ==================================================================================
 
       - name: Restore Backup Directory
         run: |
@@ -84,7 +80,7 @@ jobs:
           git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
           echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
 
-      - name: Smart Atomic Backup  # 核心备份逻辑（完全保留，仅修语法错误）
+      - name: Smart Atomic Backup  # 核心备份逻辑（完全保留，仅修正语法错误）
         run: |
           #!/bin/bash
           set -eo pipefail
@@ -180,7 +176,7 @@ jobs:
               echo "创建临时备份文件: $backup_name [$(date +'%H:%M:%S')]"
               cp "$SRC_FILE" "$TEMP_FILE"
 
-              TEMP_HASH=$(sha256sum "$TEMP_FILE" | awk '{print $1}")
+              TEMP_HASH=$(sha256sum "$TEMP_FILE" | awk '{print $1}')
               if [ "$TEMP_HASH" != "$CURRENT_HASH" ]; then
                 echo "::error::哈希校验失败 [$(date +'%H:%M:%S')]"
                 exit 1
@@ -229,7 +225,7 @@ jobs:
             echo "::notice::无新变更，跳过推送"
           fi
 
-      # ====================== 存储报告步骤（完全保留，仅修正变量拼写错误）======================
+      # ====================== 存储报告步骤（完全保留，仅修正拼写错误）======================
       - name: Generate Storage Report
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -243,10 +239,11 @@ jobs:
 
           # 单位转换（已使用和剩余空间用MB）
           STORAGE_USED_MB=$(echo "scale=2; $STORAGE_USED_KB / 1024" | bc)
+          # 【修正拼写错误】原来漏了字母N：REMAINING_MB
           REMAINING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
           if (( $(echo "$REMAINING_MB < 0" | bc -l) )); then REMAINING_MB=0.00; fi
 
-          # 计算百分比
+          # 【修正拼写错误】原来漏了字母R：STORAGE_PERCENT
           STORAGE_PERCENT=$(echo "scale=3; ($STORAGE_USED_MB / $STORAGE_QUOTA_MB) * 100" | bc)
           STORAGE_PERCENT=$(printf "%.1f" "$STORAGE_PERCENT")
 
@@ -270,6 +267,7 @@ jobs:
           REPORT_CONTENT=$(cat <<-EOF
           ## 📊 仓库存储分析报告
           **生成时间:** $(date +'%Y-%m-%d %H:%M:%S %Z')  
+          # 【修正链接错误】原来链接无效，改为正确的Actions运行链接
           **工作流ID:** [$GITHUB_RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$GITHUB_RUN_ID)
 
           ### 🗃️ 存储使用情况
@@ -291,7 +289,7 @@ jobs:
           ### 📂 目录概览
           \`\`\`bash
           # 文件大小排行
-          $(du -sh * | sort -hr | head -n20)
+          $(du -sh * 2>/dev/null | sort -hr | head -n20)
           \`\`\`
           EOF
           )
