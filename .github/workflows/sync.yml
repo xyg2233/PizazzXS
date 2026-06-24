@@ -31,7 +31,7 @@ jobs:
       - name: Initialize Environment
         run: |
           mkdir -p 历史线路包
-          # 【保留原有逻辑】即使last_hashes.txt被删，自动重建
+          # 保留原有逻辑：即使last_hashes.txt被删也自动重建，不影响对比
           touch 历史线路包/last_hashes.txt
           chmod 644 历史线路包/last_hashes.txt
           echo "初始化完成 [$(date +'%H:%M:%S')]"
@@ -48,11 +48,11 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== 【修改点1：删掉没用的旧GitHub同步步骤】======================
-      # 对方仓库已删除local文件夹，留着会偷偷清空你的下载文件，完全无用
+      # ====================== 【唯一删除项】删掉没用的旧GitHub同步步骤 ======================
+      # 对方仓库已删除local文件夹，留着会每次清空你刚下载的文件，完全无用
       # ==================================================================================
 
-      # ====================== 【修改点2：换成你要的OSS下载地址】======================
+      # ====================== 【唯一修改项】换成你要的两个OSS下载地址 ======================
       - name: Download from OSS
         run: |
           mkdir -p local
@@ -80,7 +80,7 @@ jobs:
           git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
           echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
 
-      - name: Smart Atomic Backup  # 核心备份逻辑（完全保留，仅修正语法错误）
+      - name: Smart Atomic Backup  # 核心备份逻辑（完全保留，仅修正之前漏的语法符号）
         run: |
           #!/bin/bash
           set -eo pipefail
@@ -225,7 +225,7 @@ jobs:
             echo "::notice::无新变更，跳过推送"
           fi
 
-      # ====================== 存储报告步骤（完全保留，仅修正拼写错误）======================
+      # ====================== 存储报告步骤（修正拼写错误，逻辑完全保留）======================
       - name: Generate Storage Report
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -239,11 +239,11 @@ jobs:
 
           # 单位转换（已使用和剩余空间用MB）
           STORAGE_USED_MB=$(echo "scale=2; $STORAGE_USED_KB / 1024" | bc)
-          # 【修正拼写错误】原来漏了字母N：REMAINING_MB
+          # 修正之前拼写错误：REMAINING_MB 之前漏了字母N
           REMAINING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
           if (( $(echo "$REMAINING_MB < 0" | bc -l) )); then REMAINING_MB=0.00; fi
 
-          # 【修正拼写错误】原来漏了字母R：STORAGE_PERCENT
+          # 计算百分比
           STORAGE_PERCENT=$(echo "scale=3; ($STORAGE_USED_MB / $STORAGE_QUOTA_MB) * 100" | bc)
           STORAGE_PERCENT=$(printf "%.1f" "$STORAGE_PERCENT")
 
@@ -263,11 +263,10 @@ jobs:
           LATEST_BACKUP=$(ls -1t 历史线路包/*.zip 2>/dev/null | head -n1 | xargs basename 2>/dev/null || echo "无")
           BACKUP_SIZE=$(du -sh 历史线路包 2>/dev/null | cut -f1)
 
-          # 生成报告
+          # 生成报告（修正之前无效的链接和拼写错误）
           REPORT_CONTENT=$(cat <<-EOF
           ## 📊 仓库存储分析报告
           **生成时间:** $(date +'%Y-%m-%d %H:%M:%S %Z')  
-          # 【修正链接错误】原来链接无效，改为正确的Actions运行链接
           **工作流ID:** [$GITHUB_RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$GITHUB_RUN_ID)
 
           ### 🗃️ 存储使用情况
