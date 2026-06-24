@@ -23,7 +23,7 @@ jobs:
           echo "当前时间: $(date +'%Y-%m-%d %H:%M:%S %Z')"
 
       - name: Checkout GitHub Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
