@@ -198,6 +198,11 @@ jobs:
           if [ -f "local/单线路.zip" ]; then
             echo "开始解压 [$(date +'%H:%M:%S')]"
             mkdir -p 单线路文件/
+            
+            # 【新增】清空单线路文件夹，移除所有残留的老版本文件
+            rm -rf 单线路文件/*
+            echo "已清空单线路文件夹旧内容"
+            
             if ! unzip -o -q local/单线路.zip -d 单线路文件/; then
               echo "::error::解压失败 [$(date +'%H:%M:%S')"
               exit 1
