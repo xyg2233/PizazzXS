@@ -288,27 +288,6 @@
             "ext": "https://qpcj.69mini.com/api.php/app/"
         },
         {
-            "key": "湘漓",
-            "name": "湘漓 • APP",
-            "type": 3,
-            "api": "csp_AppFox",
-            "ext": "https://ledayy.com"
-        },
-        {
-            "key": "嘉禾",
-            "name": "嘉禾 • APP",
-            "type": 3,
-            "api": "csp_AppFox",
-            "ext": "https://www.baidukuaiy.top"
-        },
-        {
-            "key": "峥嵘",
-            "name": "峥嵘 • APP",
-            "type": 3,
-            "api": "csp_AppFox",
-            "ext": "https://api2026.hboqy.cn"
-        },
-        {
             "key": "金牌",
             "name": "金牌 • APP",
             "type": 3,
@@ -321,20 +300,6 @@
                 "dataIv": "eecbio48dsq13kkk",
                 "search": "searchList4",
                 "init": "initV122",
-                "ua": "okhttp/3.10.0"
-            }
-        },
-        {
-            "key": "老鹰",
-            "name": "老鹰 • APP",
-            "type": 3,
-            "api": "csp_AppQi",
-            "searchable": 1,
-            "changeable": 1,
-            "ext": {
-                "site": "https://maotouyinghubei.oss-cn-wuhan-lr.aliyuncs.com/maotouyinghb.txt",
-                "dataKey": "zxPtEUDGVllIUhDB",
-                "dataIv": "zxPtEUDGVllIUhDB",
                 "ua": "okhttp/3.10.0"
             }
         },
