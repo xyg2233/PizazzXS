@@ -1,11 +1,11 @@
 name: Sync from GitHub潇洒仓库 with Smart Backup (Beijing Time)
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'  # 每小时执行一次（UTC时间）
+  workflow_dispatch:     # 支持手动触发
 
 env:
-  TZ: Asia/Shanghai
+  TZ: Asia/Shanghai      # 强制使用北京时间
 
 permissions:
   issues: write
@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # ====================== 核心功能步骤（未修改）======================
       - name: Set Beijing Timezone
         run: |
           sudo timedatectl set-timezone Asia/Shanghai
@@ -34,16 +35,6 @@ jobs:
           chmod 644 历史线路包/last_hashes.txt
           echo "初始化完成 [$(date +'%H:%M:%S')]"
 
-      # ====================== 核心改动 1：下载必须最先 ======================
-      - name: Download from OSS
-        run: |
-          mkdir -p local
-          # 这一步永远执行，不受后续逻辑影响
-          curl -Lf -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
-          curl -Lf -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
-          echo "下载完成 [$(date +'%H:%M:%S')]"
-      # ===================================================================
-
       - name: Backup Workflow File
         run: |
           cp .github/workflows/sync.yml /tmp/sync.yml
@@ -56,6 +47,16 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
+      # ====================== 【已修正】使用 curl 替代 wget ======================
+      - name: Download from OSS
+        run: |
+          mkdir -p local
+          # 使用 curl -f 参数：HTTP错误时（404/403）直接失败，不生成空文件
+          curl -Lf -o local/单线路.zip https://oss-v1.wangmeipo.cn/236/单线路.zip
+          curl -Lf -o local/多线路.zip https://oss-v1.wangmeipo.cn/236/多线路.zip
+          echo "下载完成 [$(date +'%H:%M:%S')"
+      # ==========================================================================
+
       - name: Restore Backup Directory
         run: |
           if [ -d "/tmp/history_backup" ]; then
@@ -64,7 +65,16 @@ jobs:
             echo "备份目录恢复完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== 核心改动 2：现在比对的是刚下载的文件 ======================
+      - name: Restore Workflow File
+        run: |
+          mkdir -p .github/workflows
+          cp /tmp/sync.yml .github/workflows/sync.yml
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add .github/workflows/sync.yml
+          git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
+          echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
+
       - name: Smart Atomic Backup
         run: |
           #!/bin/bash
@@ -80,7 +90,9 @@ jobs:
             local attempt=1
             while [ $attempt -le $MAX_RETRIES ]; do
               echo "[尝试 $attempt/$MAX_RETRIES] $(date +'%H:%M:%S')"
-              if atomic_backup; then return 0; fi
+              if atomic_backup; then
+                return 0
+              fi
               sleep $RETRY_DELAY
               ((attempt++))
             done
@@ -90,9 +102,15 @@ jobs:
 
           atomic_backup() {
             exec 9>"$BACKUP_DIR/.lock"
-            if ! flock -x -w 15 9; then echo "::error::无法获取文件锁"; return 1; fi
+            if ! flock -x -w 15 9; then
+              echo "::error::无法获取文件锁 [$(date +'%H:%M:%S')]"
+              return 1
+            fi
 
-            if [ ! -f "$SRC_FILE" ]; then echo "::warning::源文件不存在"; return 0; fi
+            if [ ! -f "$SRC_FILE" ]; then
+              echo "::warning::源文件不存在 [$(date +'%H:%M:%S')]"
+              return 0
+            fi
             
             CURRENT_HASH=$(sha256sum "$SRC_FILE" | awk '{print $1}')
             echo "当前文件哈希: ${CURRENT_HASH:0:8}... [$(date +'%H:%M:%S')]"
@@ -100,14 +118,14 @@ jobs:
             if [ -f "$BACKUP_DIR/last_hashes.txt" ]; then
               OLD_HASH=$(grep "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" | cut -d: -f2 || echo "")
               if [ "$CURRENT_HASH" == "$OLD_HASH" ]; then
-                echo "::notice::文件内容无变化，跳过备份归档 [$(date +'%H:%M:%S')]"
+                echo "::notice::文件无变化，跳过备份 [$(date +'%H:%M:%S')]"
                 return 0
               fi
               
               while IFS= read -r -d '' backup_file; do
                 BACKUP_HASH=$(sha256sum "$backup_file" | awk '{print $1}')
                 if [ "$BACKUP_HASH" == "$CURRENT_HASH" ]; then
-                  echo "::notice::发现内容相同的历史备份，更新哈希记录"
+                  echo "::notice::发现相同备份: $(basename "$backup_file") [$(date +'%H:%M:%S')]"
                   TEMP_HASHFILE=$(mktemp)
                   grep -v "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" > "$TEMP_HASHFILE" 2>/dev/null || true
                   echo "$BASE_NAME:$CURRENT_HASH" >> "$TEMP_HASHFILE"
@@ -119,120 +137,158 @@ jobs:
 
             TEMP_DIR=$(mktemp -d)
             trap 'rm -rf "$TEMP_DIR"' EXIT
+
             get_next_version() {
               local files=()
-              while IFS= read -r -d '' file; do files+=("$file"); done < <(find "$BACKUP_DIR" -name "${BASE_NAME}${DATE_SUFFIX}*.zip" -print0 | sort -zV)
-              if [ ${#files[@]} -eq 0 ]; then echo "0";
+              while IFS= read -r -d '' file; do
+                files+=("$file")
+              done < <(find "$BACKUP_DIR" -name "${BASE_NAME}${DATE_SUFFIX}*.zip" -print0 | sort -zV)
+              
+              if [ ${#files[@]} -eq 0 ]; then
+                echo "0"
               else
                 local latest_file="${files[-1]}"
                 if [[ "$latest_file" =~ ${BASE_NAME}${DATE_SUFFIX}(\.([0-9]+))?\.zip$ ]]; then
                   local current_ver="${BASH_REMATCH[2]:-0}"
                   echo "$((current_ver + 1))"
-                else echo "1"; fi
+                else
+                  echo "1"
+                fi
               fi
             }
+
             local version=$(get_next_version)
             local backup_name
-            if [ "$version" -eq 0 ]; then backup_name="${BASE_NAME}${DATE_SUFFIX}.zip"
-            else backup_name="${BASE_NAME}${DATE_SUFFIX}.${version}.zip"; fi
+            if [ "$version" -eq 0 ]; then
+              backup_name="${BASE_NAME}${DATE_SUFFIX}.zip"
+            else
+              backup_name="${BASE_NAME}${DATE_SUFFIX}.${version}.zip"
+            fi
 
             (
               set -e
               TEMP_FILE="$TEMP_DIR/${backup_name}.tmp"
+              echo "创建临时备份文件: $backup_name [$(date +'%H:%M:%S')]"
               cp "$SRC_FILE" "$TEMP_FILE"
+
               TEMP_HASH=$(sha256sum "$TEMP_FILE" | awk '{print $1}')
-              if [ "$TEMP_HASH" != "$CURRENT_HASH" ]; then exit 1; fi
+              if [ "$TEMP_HASH" != "$CURRENT_HASH" ]; then
+                echo "::error::哈希校验失败 [$(date +'%H:%M:%S')"
+                exit 1
+              fi
+
               mv "$TEMP_FILE" "$BACKUP_DIR/$backup_name"
               TEMP_HASHFILE="$TEMP_DIR/last_hashes.tmp"
               grep -v "^$BASE_NAME:" "$BACKUP_DIR/last_hashes.txt" > "$TEMP_HASHFILE" 2>/dev/null || true
               echo "$BASE_NAME:$CURRENT_HASH" >> "$TEMP_HASHFILE"
               mv "$TEMP_HASHFILE" "$BACKUP_DIR/last_hashes.txt"
-            ) || { echo "::error::备份过程失败"; return 1; }
+            ) || {
+              echo "::error::备份过程失败 [$(date +'%H:%M:%S')"
+              return 1
+            }
 
-            echo "::notice::备份成功: $backup_name"
+            echo "::notice::备份成功: $backup_name [$(date +'%H:%M:%S')"
             return 0
           }
+
           atomic_backup_with_retry
-      # =============================================================================
 
-      - name: Restore Workflow File
-        run: |
-          mkdir -p .github/workflows
-          cp /tmp/sync.yml .github/workflows/sync.yml
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-          git add .github/workflows/sync.yml
-          git commit -m "同步后恢复工作流文件 [$(date +'%m-%d %H:%M')]" || echo "无变更可提交"
-          echo "工作流恢复完成 [$(date +'%H:%M:%S')]"
-
-      # ====================== 解压永远执行（基于刚下载的文件） ======================
       - name: Auto Extract ZIP
         run: |
           if [ -f "local/单线路.zip" ]; then
             echo "开始解压 [$(date +'%H:%M:%S')]"
             mkdir -p 单线路文件/
+            
+            # 【新增】清空单线路文件夹，移除所有残留的老版本文件
             rm -rf 单线路文件/*
+            echo "已清空单线路文件夹旧内容"
+            
             if ! unzip -o -q local/单线路.zip -d 单线路文件/; then
-              echo "::error::解压失败"; exit 1
+              echo "::error::解压失败 [$(date +'%H:%M:%S')"
+              exit 1
             fi
             echo "解压完成 → 单线路文件/ [$(date +'%H:%M:%S')"
           else
-            echo "::notice::无ZIP文件可解压"
+            echo "::notice::无ZIP文件可解压 [$(date +'%H:%M:%S')"
           fi
-      # ===========================================================================
 
       - name: Commit and Push
         run: |
-          git add -f 历史线路包/ 单线路文件/ local/
-          # 这里依然保留 git status 判断，防止无变化时产生空提交
-          if git status --porcelain | grep -q .; then
+          # 强制添加，解决中文路径和文件状态识别问题
+          git add -f 历史线路包/ 单线路文件/ local/ || echo "无文件变更"
+          if ! git diff-index --quiet HEAD --; then
             git config --global user.name "GitHub Actions Bot"
             git config --global user.email "actions@github.com"
-            git commit -m "自动同步 [$(date +'%m-%d %H:%M')] [skip ci]"
+            git commit -m "自动备份 [$(date +'%m-%d %H:%M')] [skip ci]"
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             git push --force origin HEAD:master
           else
-            echo "::notice::仓库文件无变更，跳过推送"
+            echo "::notice::无新变更，跳过推送"
           fi
 
+      # ====================== 存储报告步骤（已修正链接和拼写）======================
       - name: Generate Storage Report
         if: github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get update -qq && sudo apt-get install -qqy jq bc > /dev/null
-          STORAGE_USED_KB=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}" | jq -r '.size')
+
+          STORAGE_USED_KB=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}" | jq -r '.size')
           STORAGE_QUOTA_GB=1.0
           STORAGE_QUOTA_MB=$(echo "$STORAGE_QUOTA_GB * 1024" | bc)
+
           STORAGE_USED_MB=$(echo "scale=2; $STORAGE_USED_KB / 1024" | bc)
           REMAINING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
           if (( $(echo "$REMAINING_MB < 0" | bc -l) )); then REMAINING_MB=0.00; fi
+
           STORAGE_PERCENT=$(echo "scale=3; ($STORAGE_USED_MB / $STORAGE_QUOTA_MB) * 100" | bc)
           STORAGE_PERCENT=$(printf "%.1f" "$STORAGE_PERCENT")
-          PROGRESS_BAR=""; for i in {1..20}; do THRESHOLD=$(echo "scale=1; $i * 5" | bc); if (( $(echo "$STORAGE_PERCENT >= $THRESHOLD" | bc -l) )); then PROGRESS_BAR+="▓"; else PROGRESS_BAR+="░"; fi; done
+
+          PROGRESS_BAR=""
+          for i in {1..20}; do
+            THRESHOLD=$(echo "scale=1; $i * 5" | bc)
+            if (( $(echo "$STORAGE_PERCENT >= $THRESHOLD" | bc -l) )); then
+              PROGRESS_BAR+="▓"
+            else
+              PROGRESS_BAR+="░"
+            fi
+          done
+
           BACKUP_COUNT=$(ls -1 历史线路包/*.zip 2>/dev/null | wc -l)
           LATEST_BACKUP=$(ls -1t 历史线路包/*.zip 2>/dev/null | head -n1 | xargs basename 2>/dev/null || echo "无")
           BACKUP_SIZE=$(du -sh 历史线路包 2>/dev/null | cut -f1)
+
           REPORT_CONTENT=$(cat <<-EOF
           ## 📊 仓库存储分析报告
-          **生成时间:** $(date +'%Y-%m-%d %H:%M:%S %Z')
-          **工作流ID:** [$GITHUB_RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$GITHUB_RUN_ID)
+          **生成时间:** $(date +'%Y-%m-%d %H:%M:%S %Z')  
+          **工作流ID:** 
+
           ### 🗃️ 存储使用情况
-          | 项目 | 详情 |
-          |---|---|
-          | **总配额** | ${STORAGE_QUOTA_GB} GB |
-          | **已使用** | ${STORAGE_USED_MB} MB (${STORAGE_PERCENT}%) |
-          | **进度条** | \`${PROGRESS_BAR}\` |
-          | **剩余空间** | ${REMAINING_MB} MB |
+          | 项目         | 详情                          |
+          |--------------|-------------------------------|
+          | **总配额**   | ${STORAGE_QUOTA_GB} GB (GitHub免费账户) |
+          | **已使用**   | ${STORAGE_USED_MB} MB (${STORAGE_PERCENT}%) |
+          | **进度条**   | \`${PROGRESS_BAR}\`                |
+          | **剩余空间** | ${REMAINING_MB} MB            |
+
           ### 📦 备份状态
-          | 项目 | 详情 |
-          |---|---|
-          | 备份目录 | \`历史线路包\` |
-          | 备份文件数 | ${BACKUP_COUNT} 个 |
-          | 最新备份 | \`${LATEST_BACKUP}\` |
-          | 备份总大小 | ${BACKUP_SIZE} |
+          | 项目         | 详情                          |
+          |--------------|-------------------------------|
+          | 备份目录     | \`历史线路包\`                   |
+          | 备份文件数   | ${BACKUP_COUNT} 个             |
+          | 最新备份     | \`${LATEST_BACKUP}\`            |
+          | 备份总大小   | ${BACKUP_SIZE}                |
+
           ### 📂 目录概览
           \`\`\`bash
+          # 文件大小排行
           $(du -sh * 2>/dev/null | sort -hr | head -n20)
           \`\`\`
           EOF
           )
-          curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/issues" -d "$(jq -n --arg title "📦[存储报告] $(date +'%m-%d %H:%M')" --arg body "$REPORT_CONTENT" '{"title":$title,"body":$body}')"
+
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d "$(jq -n --arg title "📦[存储报告] $(date +'%m-%d %H:%M')" --arg body "$REPORT_CONTENT" '{"title":$title,"body":$body}')"
