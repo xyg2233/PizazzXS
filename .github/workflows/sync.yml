@@ -46,36 +46,45 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== ✅ 关键修复：从 single.json 获取真实下载地址 ======================
+      # ====================== ✅ 关键修复：单/多线路同时下载 ======================
       - name: Download from OSS
         run: |
           mkdir -p local
 
           MANIFEST="https://9877.kstore.space/single.json"
           echo "拉取公告板: $MANIFEST [$(date +'%H:%M:%S')]"
-
-          # 拉取 JSON
           curl -Lf -o /tmp/single.json "$MANIFEST"
 
-          # 从 JSON 中解析【单线路】下载地址
-          ZIP_URL=$(jq -r '
+          # 解析单线路地址
+          SINGLE_URL=$(jq -r '
             .[] | select(.name=="本地包") | .list[] |
             select(.name=="点击下载") | .url
           ' /tmp/single.json)
 
-          if [ -z "$ZIP_URL" ] || [ "$ZIP_URL" = "null" ]; then
-            echo "::error::未能从 single.json 中解析到单线路下载地址"
+          if [ -z "$SINGLE_URL" ] || [ "$SINGLE_URL" = "null" ]; then
+            echo "::error::单线路下载地址解析失败"
             cat /tmp/single.json
             exit 1
           fi
 
-          echo "最新单线路包: $ZIP_URL [$(date +'%H:%M:%S')]"
+          # --- 下载单线路 ---
+          echo "单线路: $SINGLE_URL"
+          curl -Lf -o local/单线路.zip "$SINGLE_URL"
 
-          # 下载并固定命名为 单线路.zip（后面所有步骤都不用改）
-          curl -Lf -o local/单线路.zip "$ZIP_URL"
+          # --- 拼接并下载多线路（把URL里的“单”换成“多”） ---
+          MULTI_URL=$(echo "$SINGLE_URL" | sed 's|/单|/多|')
+          echo "多线路: $MULTI_URL"
+          
+          # 即使多线路不存在也不报错，保证单线路流程畅通
+          if curl -Lf -o local/多线路.zip "$MULTI_URL"; then
+            echo "多线路下载成功"
+          else
+            echo "::warning::多线路包不存在，已跳过（上游可能未上传）"
+            rm -f local/多线路.zip
+          fi
 
           echo "下载完成 [$(date +'%H:%M:%S')]"
-      # =========================================================================================
+      # ========================================================================
 
       - name: Restore Backup Directory
         run: |
