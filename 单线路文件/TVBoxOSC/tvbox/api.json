@@ -352,7 +352,7 @@
             "searchable": 1,
             "changeable": 1,
             "ext": {
-                "site": "https://gitee.com/wmmoliill/wimg/raw/master/img/bk/9.txt",
+                "site": "https://allinadmin.oss-cn-hangzhou.aliyuncs.com/bk/9.txt",
                 "dataKey": "88689667dce61725",
                 "dataIv": "88689667dce61725"
             }
@@ -647,10 +647,10 @@
             "timeout": 60
         },
         {
-            "key": "河马短剧",
-            "name": "河马 • 短剧",
+            "key": "笒鬼短剧",
+            "name": "笒鬼 • 短剧",
             "type": 3,
-            "api": "csp_HemaDJ",
+            "api": "csp_CenguiDJ",
             "searchable": 1,
             "changeable": 1,
             "quickSearch": 1,
