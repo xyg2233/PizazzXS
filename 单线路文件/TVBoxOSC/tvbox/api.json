@@ -687,6 +687,16 @@
             "filterable": 1
         },
         {
+            "key": "瓜子影视",
+            "name": "瓜子 • 影视",
+            "type": 3,
+            "api": "./py/瓜子影视.py",
+            "searchable": 1,
+            "changeable": 1,
+            "quickSearch": 1,
+            "filterable": 1
+        },
+        {
             "key": "独播影视",
             "name": "独播 • 影视",
             "type": 3,
@@ -715,12 +725,6 @@
             "api": "csp_Xlys",
             "type": 3,
             "ext": "https://www.xlysw.ggff.net"
-        },
-        {
-            "key": "瓜子影视",
-            "name": "瓜子 • 影视",
-            "type": 3,
-            "api": "csp_Gz360"
         },
         {
             "key": "骚火影视",
