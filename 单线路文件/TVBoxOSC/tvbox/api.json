@@ -56,6 +56,12 @@
             "api": "csp_App3Q"
         },
         {
+            "key": "马猴影视",
+            "name": "马猴 • APP",
+            "type": 3,
+            "api": "csp_AppMH"
+        },
+        {
             "key": "韩圈",
             "name": "韩圈 • APP",
             "type": 3,
@@ -669,6 +675,16 @@
             "quickSearch": 1,
             "filterable": 1,
             "genre": "shortdrama"
+        },
+        {
+            "key": "山楂影视",
+            "name": "山楂 • 影视",
+            "type": 3,
+            "api": "./py/山楂影视.py",
+            "searchable": 1,
+            "changeable": 1,
+            "quickSearch": 1,
+            "filterable": 1
         },
         {
             "key": "独播影视",
