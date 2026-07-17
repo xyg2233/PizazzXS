@@ -133,22 +133,6 @@
             }
         },
         {
-            "key": "顾我99",
-            "name": "顾我 • APP",
-            "type": 3,
-            "api": "csp_App99",
-            "ext": {
-                "host": "http://117.50.200.113:19987/app/bn",
-                "LoginPath": "/app/log",
-                "appkey": "040f9b1bc5e942569b5c3e63943306ab",
-                "versionName": "4.3.1",
-                "name": "顾我追剧",
-                "package": "com.guwozhuijux.app",
-                "buildNumber": "2001",
-                "buildSignature": "5AD4436C4730FFE26910C86278B80F3E661C317FFC3616F702D20A729262624A"
-            }
-        },
-        {
             "key": "天堂",
             "name": "天堂 • APP",
             "type": 3,
@@ -677,24 +661,22 @@
             "genre": "shortdrama"
         },
         {
-            "key": "山楂影视",
-            "name": "山楂 • 影视",
-            "type": 3,
-            "api": "./py/山楂影视.py",
-            "searchable": 1,
-            "changeable": 1,
-            "quickSearch": 1,
-            "filterable": 1
-        },
-        {
             "key": "瓜子影视",
             "name": "瓜子 • 影视",
             "type": 3,
-            "api": "./py/瓜子影视.py",
-            "searchable": 1,
-            "changeable": 1,
-            "quickSearch": 1,
-            "filterable": 1
+            "api": "csp_Gz360"
+        },
+        {
+            "key": "山楂影视",
+            "name": "山楂 • 影视",
+            "type": 3,
+            "api": "csp_PianKu8"
+        },
+        {
+            "key": "飞娱影视",
+            "name": "飞娱 • 影视",
+            "type": 3,
+            "api": "csp_Feiyu"
         },
         {
             "key": "独播影视",
