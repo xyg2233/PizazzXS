@@ -639,17 +639,6 @@
             "genre": "shortdrama"
         },
         {
-            "key": "围观短剧",
-            "name": "围观 • 短剧",
-            "type": 3,
-            "api": "csp_WeiguanDJ",
-            "searchable": 1,
-            "changeable": 1,
-            "quickSearch": 1,
-            "filterable": 1,
-            "genre": "shortdrama"
-        },
-        {
             "key": "星芽短剧",
             "name": "星芽 • 短剧",
             "type": 3,
@@ -659,6 +648,18 @@
             "quickSearch": 1,
             "filterable": 1,
             "genre": "shortdrama"
+        },
+        {
+            "key": "果果短剧",
+            "name": "果果 • 短剧",
+            "type": 3,
+            "api": "csp_XBPQ",
+            "ext": {
+                "请求头": "User-Agent$MOBILE_UA",
+                "编码": "UTF-8",
+                "分类": "重生$1#穿越$2#爽剧$3#言情$4#都市$5#古装$6#悬疑$7#剧情$8",
+                "分类url": "https://www.mochadj.com/i/{cateId}-{catePg}.html"
+            }
         },
         {
             "key": "瓜子影视",
