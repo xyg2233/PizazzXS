@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p local
 
-          MANIFEST="https://9877.kstore.space/single.json"
+          MANIFEST="https://oss-v1.wangmeipo.cn/236/single.json"
           echo "拉取公告板: $MANIFEST [$(date +'%H:%M:%S')]"
           curl -Lf -o /tmp/single.json "$MANIFEST"
 
