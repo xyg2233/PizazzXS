@@ -688,10 +688,32 @@
             "timeout": 60
         },
         {
-            "key": "笒鬼短剧",
-            "name": "笒鬼 • 短剧",
+            "key": "七猫短剧",
+            "name": "七猫 • 短剧",
             "type": 3,
-            "api": "csp_CenguiDJ",
+            "api": "csp_QimaoDJ",
+            "searchable": 1,
+            "changeable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "genre": "shortdrama"
+        },
+        {
+            "key": "河马短剧",
+            "name": "河马 • 短剧",
+            "type": 3,
+            "api": "csp_HemaDJ",
+            "searchable": 1,
+            "changeable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "genre": "shortdrama"
+        },
+        {
+            "key": "围观短剧",
+            "name": "围观 • 短剧",
+            "type": 3,
+            "api": "csp_WeiguanDJ",
             "searchable": 1,
             "changeable": 1,
             "quickSearch": 1,
@@ -890,6 +912,13 @@
             "type": 3,
             "api": "./js/drpy2.min.js",
             "ext": "./js/Anime1.js"
+        },
+        {
+            "key": "喵呜动漫",
+            "name": "喵呜 • 动漫",
+            "type": 3,
+            "searchable": 1,
+            "api": "csp_MiaoWu"
         },
         {
             "key": "漫国动漫",
@@ -1102,6 +1131,16 @@
                     "http://www.misoso.shop"
                 ]
             },
+            "timeout": 60
+        },
+        {
+            "key": "酷乐",
+            "name": "酷乐 • 搜索",
+            "type": 3,
+            "api": "csp_KuLe",
+            "searchable": 1,
+            "quickSearch": 0,
+            "filterable": 0,
             "timeout": 60
         },
         {
