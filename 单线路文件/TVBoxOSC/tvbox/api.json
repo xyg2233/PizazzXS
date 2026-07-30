@@ -546,7 +546,8 @@
                 "site": [
                     "https://sidhub.cc",
                     "https://seeduck.cc",
-                    "https://hubdog.cc"
+                    "https://hubdog.cc",
+                    "http://104.243.25.80"
                 ]
             },
             "timeout": 60
