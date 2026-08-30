@@ -46,45 +46,42 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== ✅ 关键修复：单/多线路同时下载 ======================
-      - name: Download from OSS
+      # ====================== ✅ 改动：直连仓库，发现即下载 ======================
+      - name: Download from GitHub Repo
         run: |
           mkdir -p local
+          REPO="PizazzGY/NewTVBox"
+          BRANCH="main"
+          BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 
-          MANIFEST="https://oss-v1.wangmeipo.cn/236/single.json"
-          echo "拉取公告板: $MANIFEST [$(date +'%H:%M:%S')]"
-          curl -Lf -o /tmp/single.json "$MANIFEST"
+          echo "源仓库: https://github.com/${REPO}/tree/${BRANCH}"
+          echo "开始检测并下载 [$(date +'%H:%M:%S')]"
 
-          # 解析单线路地址
-          SINGLE_URL=$(jq -r '
-            .[] | select(.name=="本地包") | .list[] |
-            select(.name=="点击下载") | .url
-          ' /tmp/single.json)
-
-          if [ -z "$SINGLE_URL" ] || [ "$SINGLE_URL" = "null" ]; then
-            echo "::error::单线路下载地址解析失败"
-            cat /tmp/single.json
+          # ---- 单线路（必须） ----
+          echo ""
+          echo ">> 检测单线路..."
+          if curl -fL --connect-timeout 15 --max-time 180 -o local/单线路.zip "${BASE}/单线路.zip"; then
+            SIZE=$(du -sh local/单线路.zip | cut -f1)
+            echo "✔ 单线路下载成功 (${SIZE})"
+          else
+            echo "::error::单线路不存在或下载失败"
             exit 1
           fi
 
-          # --- 下载单线路 ---
-          echo "单线路: $SINGLE_URL"
-          curl -Lf -o local/单线路.zip "$SINGLE_URL"
-
-          # --- 拼接并下载多线路（把URL里的“单”换成“多”） ---
-          MULTI_URL=$(echo "$SINGLE_URL" | sed 's|/单|/多|')
-          echo "多线路: $MULTI_URL"
-          
-          # 即使多线路不存在也不报错，保证单线路流程畅通
-          if curl -Lf -o local/多线路.zip "$MULTI_URL"; then
-            echo "多线路下载成功"
+          # ---- 多线路（可选） ----
+          echo ""
+          echo ">> 检测多线路..."
+          if curl -fL --connect-timeout 15 --max-time 180 -o local/多线路.zip "${BASE}/多线路.zip"; then
+            SIZE=$(du -sh local/多线路.zip | cut -f1)
+            echo "✔ 多线路下载成功 (${SIZE})"
           else
-            echo "::warning::多线路包不存在，已跳过（上游可能未上传）"
+            echo "::warning::多线路不存在，已跳过（上游可能未上传）"
             rm -f local/多线路.zip
           fi
 
-          echo "下载完成 [$(date +'%H:%M:%S')]"
-      # ========================================================================
+          echo ""
+          echo "下载阶段完成 [$(date +'%H:%M:%S')]"
+      # ==========================================================================
 
       - name: Restore Backup Directory
         run: |
@@ -246,18 +243,8 @@ jobs:
           | **总配额** | ${STORAGE_QUOTA_GB} GB |
           | **已使用** | ${STORAGE_USED_MB} MB (${STORAGE_PERCENT}%) |
           | **进度条** | \`${PROGRESS_BAR}\` |
-          | **剩余空间** | ${REMAINING_MB} MB |
-          ### 📦 备份状态
-          | 项目 | 详情 |
-          |---|---|
-          | 备份目录 | \`历史线路包\` |
-          | 备份文件数 | ${BACKUP_COUNT} 个 |
-          | 最新备份 | \`${LATEST_BACKUP}\` |
-          | 备份总大小 | ${BACKUP_SIZE} |
-          ### 📂 目录概览
-          \`\`\`bash
-          $(du -sh * 2>/dev/null | sort -hr | head -n20)
-          \`\`\`
+          | **剩余空间** | ${REMOVEING_MB} MB |
+          | **备份总大小** | ${BACKUP_SIZE} |
           EOF
           )
           curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/issues" -d "$(jq -n --arg title "📦[存储报告] $(date +'%m-%d %H:%M')" --arg body "$REPORT_CONTENT" '{"title":$title,"body":$body}')"
