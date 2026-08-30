@@ -46,42 +46,26 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== ✅ 改动：直连仓库，发现即下载 ======================
+      # ====================== ✅ 最小改动：直连 GitHub 仓库下载 ======================
       - name: Download from GitHub Repo
         run: |
           mkdir -p local
-          REPO="PizazzGY/NewTVBox"
-          BRANCH="main"
-          BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
+          BASE="https://raw.githubusercontent.com/PizazzGY/NewTVBox/main"
 
-          echo "源仓库: https://github.com/${REPO}/tree/${BRANCH}"
-          echo "开始检测并下载 [$(date +'%H:%M:%S')]"
-
-          # ---- 单线路（必须） ----
-          echo ""
-          echo ">> 检测单线路..."
-          if curl -fL --connect-timeout 15 --max-time 180 -o local/单线路.zip "${BASE}/单线路.zip"; then
-            SIZE=$(du -sh local/单线路.zip | cut -f1)
-            echo "✔ 单线路下载成功 (${SIZE})"
-          else
-            echo "::error::单线路不存在或下载失败"
+          echo ">> 单线路 [$(date +'%H:%M:%S')]"
+          if ! curl -fL --connect-timeout 15 --max-time 180 -o local/单线路.zip "${BASE}/单线路.zip"; then
+            echo "::error::单线路下载失败"
             exit 1
           fi
 
-          # ---- 多线路（可选） ----
-          echo ""
-          echo ">> 检测多线路..."
+          echo ">> 多线路 [$(date +'%H:%M:%S')]"
           if curl -fL --connect-timeout 15 --max-time 180 -o local/多线路.zip "${BASE}/多线路.zip"; then
-            SIZE=$(du -sh local/多线路.zip | cut -f1)
-            echo "✔ 多线路下载成功 (${SIZE})"
+            echo "多线路下载成功"
           else
-            echo "::warning::多线路不存在，已跳过（上游可能未上传）"
+            echo "::warning::多线路包不存在，已跳过"
             rm -f local/多线路.zip
           fi
-
-          echo ""
-          echo "下载阶段完成 [$(date +'%H:%M:%S')]"
-      # ==========================================================================
+      # ========================================================================
 
       - name: Restore Backup Directory
         run: |
@@ -193,7 +177,7 @@ jobs:
       - name: Auto Extract ZIP
         run: |
           if [ -f "local/单线路.zip" ]; then
-            echo "开始解压 [$(date +'%H:%M:%S')]"
+            echo "开始解压 [$(date +'%H:%M:%S')"
             mkdir -p 单线路文件/
             rm -rf 单线路文件/*
             if ! unzip -o -q local/单线路.zip -d 单线路文件/; then
@@ -225,8 +209,8 @@ jobs:
           STORAGE_QUOTA_GB=1.0
           STORAGE_QUOTA_MB=$(echo "$STORAGE_QUOTA_GB * 1024" | bc)
           STORAGE_USED_MB=$(echo "scale=2; $STORAGE_USED_KB / 1024" | bc)
-          REMAINING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
-          if (( $(echo "$REMAINING_MB < 0" | bc -l) )); then REMAINING_MB=0.00; fi
+          REMOVEING_MB=$(echo "scale=2; $STORAGE_QUOTA_MB - $STORAGE_USED_MB" | bc)
+          if (( $(echo "$REMOVEING_MB < 0" | bc -l) )); then REMOVEING_MB=0.00; fi
           STORAGE_PERCENT=$(echo "scale=3; ($STORAGE_USED_MB / $STORAGE_QUOTA_MB) * 100" | bc)
           STORAGE_PERCENT=$(printf "%.1f" "$STORAGE_PERCENT")
           PROGRESS_BAR=""; for i in {1..20}; do THRESHOLD=$(echo "scale=1; $i * 5" | bc); if (( $(echo "$STORAGE_PERCENT >= $THRESHOLD" | bc -l) )); then PROGRESS_BAR+="▓"; else PROGRESS_BAR+="░"; fi; done
@@ -244,7 +228,17 @@ jobs:
           | **已使用** | ${STORAGE_USED_MB} MB (${STORAGE_PERCENT}%) |
           | **进度条** | \`${PROGRESS_BAR}\` |
           | **剩余空间** | ${REMOVEING_MB} MB |
-          | **备份总大小** | ${BACKUP_SIZE} |
+          ### 📦 备份状态
+          | 项目 | 详情 |
+          |---|---|
+          | 备份目录 | \`历史线路包\` |
+          | 备份文件数 | ${BACKUP_COUNT} 个 |
+          | 最新备份 | \`${LATEST_BACKUP}\` |
+          | 备份总大小 | ${BACKUP_SIZE} |
+          ### 📂 目录概览
+          \`\`\`bash
+          $(du -sh * 2>/dev/null | sort -hr | head -n20)
+          \`\`\`
           EOF
           )
           curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/issues" -d "$(jq -n --arg title "📦[存储报告] $(date +'%m-%d %H:%M')" --arg body "$REPORT_CONTENT" '{"title":$title,"body":$body}')"
