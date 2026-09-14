@@ -50,7 +50,7 @@ jobs:
       - name: Download from GitHub Repo
         run: |
           mkdir -p local
-          BASE="https://raw.githubusercontent.com/PizazzGY/NewTVBox/main"
+          BASE="https://pizazz.us.ci"
 
           echo ">> 单线路 [$(date +'%H:%M:%S')]"
           if ! curl -fL --connect-timeout 15 --max-time 180 -o local/单线路.zip "${BASE}/单线路.zip"; then
