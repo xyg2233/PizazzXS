@@ -114,8 +114,7 @@
             "key": "韩圈",
             "name": "韩圈 • APP",
             "type": 3,
-            "api": "csp_Hxq",
-            "ext": "http://www.小不点.com/api/2026/fishhxq.php"
+            "api": "csp_Hxq"
         },
         {
             "key": "剧圈99",
@@ -596,6 +595,16 @@
             "timeout": 60
         },
         {
+            "key": "爱盼",
+            "name": "爱盼 • 4K",
+            "type": 3,
+            "api": "csp_AiPan",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "timeout": 60
+        },
+        {
             "key": "移动",
             "name": "移动 • 4K",
             "type": 3,
@@ -695,36 +704,6 @@
                 "分类url": "https://www.mochadj.com/i/{cateId}-{catePg}.html"
             },
             "genre": "shortdrama"
-        },
-        {
-            "key": "世界影视",
-            "name": "世界 • 影视",
-            "type": 3,
-            "api": "csp_HkybSpider",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 1
-        },
-        {
-            "key": "壹壹影视",
-            "name": "壹壹 • 影视",
-            "type": 3,
-            "api": "csp_YiYs",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 1
-        },
-        {
-            "key": "瓜子影视",
-            "name": "瓜子 • 影视",
-            "type": 3,
-            "api": "csp_Gz360"
-        },
-        {
-            "key": "山楂影视",
-            "name": "山楂 • 影视",
-            "type": 3,
-            "api": "csp_PianKu8"
         },
         {
             "key": "飞娱影视",
@@ -855,49 +834,11 @@
             "ext": {
                 "host": "http://111.180.139.119:19987/app/bn",
                 "LoginPath": "/app/log",
-                "appkey": "f66f65db127e48449f073c2c6eb0f993",
                 "versionName": "6.4.9",
                 "name": "双子星动漫",
                 "package": "com.haiwang.liangxia.my.ym",
                 "buildNumber": "2001",
                 "buildSignature": "A40DA80A59D170CAA950CF15C18C454D47A39B26989D8B640ECD745BA71BF5DC"
-            }
-        },
-        {
-            "key": "漫国动漫",
-            "name": "漫国 • 动漫",
-            "type": 3,
-            "searchable": 1,
-            "api": "csp_AppSy",
-            "ext": {
-                "url": "http://114.66.27.208:806",
-                "siteKey": "rectangleadsadxa",
-                "listKey": "aassddwwxxllsx1x",
-                "parsesKey": "aassddwwxxllsx1x"
-            }
-        },
-        {
-            "key": "方舟动漫",
-            "name": "方舟 • 动漫",
-            "type": 3,
-            "searchable": 1,
-            "api": "csp_AppGet",
-            "ext": {
-                "url": "https://www.cyfz.top",
-                "dataKey": "e72cdfd629e8895d",
-                "dataIv": "e72cdfd629e8895d"
-            }
-        },
-        {
-            "key": "曼波动漫",
-            "name": "曼波 • 动漫",
-            "type": 3,
-            "searchable": 1,
-            "api": "csp_AppGet",
-            "ext": {
-                "url": "https://app.omofun1.top",
-                "dataKey": "66dc309cbeeca454",
-                "dataIv": "66dc309cbeeca454"
             }
         },
         {
@@ -949,16 +890,6 @@
             "name": "荐片 • 磁力",
             "api": "csp_JianPian",
             "type": 3
-        },
-        {
-            "key": "七味",
-            "name": "七味 • 磁力",
-            "type": 3,
-            "api": "csp_QnMp4",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 1,
-            "ext": "https://www.qwshow.com,https://www.qwmkv.com,https://www.qwfilm.com,https://www.qwfun.com,https://www.qnnull.com,https://www.qnnull.com"
         },
         {
             "key": "New6v",
@@ -1192,10 +1123,10 @@
             }
         },
         {
-            "key": "球通体育",
-            "name": "球通 • 体育",
+            "key": "飞球体育",
+            "name": "飞球 • 体育",
             "type": 3,
-            "api": "csp_SportsQiutong",
+            "api": "csp_SportsFeiqiu",
             "searchable": 0,
             "quickSearch": 0,
             "changeable": 0,
