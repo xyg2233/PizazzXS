@@ -59,6 +59,15 @@
             "filterable": 0
         },
         {
+            "key": "番茄影视",
+            "name": "番茄 • APP",
+            "type": 3,
+            "api": "csp_AppFQ",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 0
+        },
+        {
             "key": "咕噜",
             "name": "咕噜 • APP",
             "type": 3,
