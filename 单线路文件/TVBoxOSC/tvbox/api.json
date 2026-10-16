@@ -301,7 +301,7 @@
             }
         },
         {
-            "key": "茉莉",
+            "key": "茉莉Get",
             "name": "茉莉 • APP",
             "type": 3,
             "api": "csp_AppGet",
@@ -539,6 +539,22 @@
             "searchable": 1,
             "quickSearch": 1,
             "filterable": 1,
+            "timeout": 60
+        },
+        {
+            "key": "茉莉",
+            "name": "茉莉 • 4K",
+            "type": 3,
+            "api": "csp_HDmoli",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": {
+                "site":[
+                    "https://www.hdmoli.com",
+                    "https://www.hdmoli.pro"
+                ]
+            },
             "timeout": 60
         },
         {
