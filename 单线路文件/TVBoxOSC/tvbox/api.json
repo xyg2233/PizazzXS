@@ -498,6 +498,16 @@
             "timeout": 60
         },
         {
+            "key": "搬运",
+            "name": "搬运 • 4K",
+            "type": 3,
+            "api": "csp_BanYunDao",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "timeout": 60
+        },
+        {
             "key": "指南",
             "name": "指南 • 4K",
             "type": 3,
@@ -974,36 +984,6 @@
             "name": "盘搜 • 搜索",
             "type": 3,
             "api": "csp_PanSou",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 0,
-            "timeout": 60
-        },
-        {
-            "key": "百酷",
-            "name": "百酷 • 搜索",
-            "type": 3,
-            "api": "csp_Baiku",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 0,
-            "timeout": 60
-        },
-        {
-            "key": "酷乐",
-            "name": "酷乐 • 搜索",
-            "type": 3,
-            "api": "csp_KuLe",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 0,
-            "timeout": 60
-        },
-        {
-            "key": "鬼鬼",
-            "name": "鬼鬼 • 搜索",
-            "type": 3,
-            "api": "csp_GuiGui",
             "searchable": 1,
             "quickSearch": 0,
             "filterable": 0,
