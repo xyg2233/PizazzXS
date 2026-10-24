@@ -46,73 +46,16 @@ jobs:
             echo "备份目录保护完成 [$(date +'%H:%M:%S')]"
           fi
 
-      # ====================== ✅ 唯一改动：BASE 由实时解析得到 ======================
-      # 原写法: BASE="https://pizazz.us.ci"（写死，换域名即失效）
-      # 现写法: 调用集多解密接口读取 https://9877.kstore.space/single.json 实时内容，
-      #         从中提取当前下载域名。单/多线路仍共用同一个 BASE，与原逻辑完全对称。
-      # 接口偶发超时/DNS 抖动，内置 5 次重试；全部失败时回退到已知可用域名兜底。
-      - name: Fetch Live Manifest
-        id: manifest
-        run: |
-          python3 - <<'PYEOF'
-          import json, os, time, urllib.request
-          from urllib.parse import urlparse
-
-          API = "https://jm.jiduonb.com/api/decrypt"
-          TARGET = "https://9877.kstore.space/single.json"
-          FALLBACK_BASE = "https://www.四次元.com"
-
-          def fetch_base():
-              payload = json.dumps({"url": TARGET}).encode()
-              req = urllib.request.Request(API, data=payload, headers={
-                  "Content-Type": "application/json",
-                  "User-Agent": "Mozilla/5.0",
-                  "Referer": "https://jm.jiduonb.com/",
-                  "Origin": "https://jm.jiduonb.com",
-              })
-              with urllib.request.urlopen(req, timeout=45) as r:
-                  d = json.loads(r.read().decode())
-              if not (d.get("ok") and d.get("data")):
-                  raise RuntimeError(d.get("msg", "unknown error"))
-              inner = json.loads(d["data"])
-              urls = []
-              for grp in inner:
-                  for item in grp.get("list", []):
-                      u = (item.get("url") or "").strip()
-                      if u.lower().endswith(".zip") and u not in urls:
-                          urls.append(u)
-              if not urls:
-                  raise RuntimeError("清单中未找到 .zip 下载地址")
-              p = urlparse(urls[0])
-              base = f"{p.scheme}://{p.netloc}"
-              return base, urls
-
-          base, source = "", ""
-          for attempt in range(1, 6):
-              try:
-                  print(f"[尝试 {attempt}/5] 调用解密接口 ...")
-                  base, urls = fetch_base()
-                  source = "实时清单"
-                  break
-              except Exception as e:
-                  print(f"  失败: {e}")
-              time.sleep(5)
-
-          if not base:
-              base, source = FALLBACK_BASE, "兜底(实时解析失败)"
-              print(f"::warning::实时解析失败，回退兜底域名: {base}")
-
-          print(f"解析到的下载域名: {base} (来源: {source})")
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write(f"base={base}\n")
-          PYEOF
-      # ========================================================================
-
-      # ====================== 原下载逻辑，仅 BASE 来源改变，其余不动 ======================
+      # ====================== ✅ 唯一改动：BASE 从写死改为实时解析 ======================
+      # 原写法: BASE="https://pizazz.us.ci"（作者换域名即失效）
+      # 现写法: 用 okhttp UA 读取 9877.kstore.space/single.json（他的官方下载清单），
+      #         从中提取当前 zip 地址所在目录。单/多线路仍共用 BASE，其余逻辑不变。
       - name: Download from GitHub Repo
         run: |
           mkdir -p local
-          BASE="${{ steps.manifest.outputs.base }}"
+          BASE=$(curl -sf -A "okhttp/4.10.0" --max-time 60 "https://9877.kstore.space/single.json" \
+            | grep -o 'https://[^"]*\.zip' | head -n1 | xargs dirname)
+          echo ">> 本次下载域名: ${BASE} [$(date +'%H:%M:%S')]"
 
           echo ">> 单线路 [$(date +'%H:%M:%S')]"
           if ! curl -fL --connect-timeout 15 --max-time 180 -o local/单线路.zip "${BASE}/单线路.zip"; then
